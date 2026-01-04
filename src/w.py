@@ -1,102 +1,85 @@
 from __future__ import annotations
-import os
-import tempfile
-from dataclasses import dataclass
-from datetime import datetime
-from typing import List, Optional, Iterable, Tuple
+from typing import Dict, Tuple
+from docx import Document
 
-import win32com.client  # pywin32
+from models import ApplicationRow
 
 
-@dataclass
-class EmailAttachment:
-    received: datetime
-    sender_email: str
-    subject: str
-    attachment_path: str
-    attachment_filename: str
-    entry_id: str  # unique id in Outlook
+def _norm(s: str) -> str:
+    return (s or "").strip()
 
 
-class OutlookClient:
-    def __init__(self):
-        self.outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+def parse_application_docx(path: str) -> ApplicationRow:
+    doc = Document(path)
+    row = ApplicationRow()
 
-    def list_folders(self) -> List[str]:
-        # basic: Inbox only. Expand later to subfolders if needed.
-        return ["Inbox"]
-
-    def get_folder_items(self, folder_name: str):
-        inbox = self.outlook.GetDefaultFolder(6)  # 6 = Inbox
-        if folder_name.lower() != "inbox":
-            # You can expand this to traverse subfolders by name.
-            raise ValueError("Only Inbox supported in this minimal version.")
-        return inbox.Items
-
-    def scan_docx_attachments(
-        self,
-        folder_name: str,
-        subject_contains: str,
-        from_date: datetime,
-        max_emails: Optional[int] = None,
-    ) -> Iterable[EmailAttachment]:
-        items = self.get_folder_items(folder_name)
-
-        # Sort newest first (important)
-        items.Sort("[ReceivedTime]", True)
-
-        temp_dir = os.path.join(tempfile.gettempdir(), "scholars_parser_attachments")
-        os.makedirs(temp_dir, exist_ok=True)
-
-        count = 0
-        for item in items:
-            try:
-                received = item.ReceivedTime  # COM datetime
-                if received is None:
-                    continue
-                if received < from_date:
-                    # Since sorted newest->oldest, we can stop early
-                    break
-
-                subject = (item.Subject or "").strip()
-                if subject_contains and subject_contains.lower() not in subject.lower():
-                    continue
-
-                # attachments
-                atts = getattr(item, "Attachments", None)
-                if not atts or atts.Count == 0:
-                    continue
-
-                sender_email = ""
-                try:
-                    sender_email = item.SenderEmailAddress or ""
-                except Exception:
-                    sender_email = ""
-
-                entry_id = getattr(item, "EntryID", "")
-
-                for i in range(1, atts.Count + 1):
-                    att = atts.Item(i)
-                    filename = att.FileName
-                    if not filename.lower().endswith(".docx"):
-                        continue
-
-                    save_path = os.path.join(temp_dir, f"{entry_id}_{filename}".replace(":", "_"))
-                    att.SaveAsFile(save_path)
-
-                    yield EmailAttachment(
-                        received=received,
-                        sender_email=sender_email,
-                        subject=subject,
-                        attachment_path=save_path,
-                        attachment_filename=filename,
-                        entry_id=entry_id,
-                    )
-
-                count += 1
-                if max_emails and count >= max_emails:
-                    return
-
-            except Exception:
-                # Skip bad items (meeting requests, weird types, etc.)
+    # 1) Parse tables (common in forms)
+    # Strategy: treat table rows as "Label | Value"
+    for table in doc.tables:
+        for r in table.rows:
+            cells = [c.text.strip() for c in r.cells]
+            if len(cells) < 2:
                 continue
+            label = _norm(cells[0]).lower()
+            value = _norm(cells[1])
+
+            if "name" == label or "student name" in label:
+                row.student_name = value
+            elif "pronoun" in label:
+                row.pronouns = value
+            elif label == "email" or "email address" in label:
+                row.student_email = value
+            elif "faculty" in label:
+                row.faculty = value
+            elif "major" in label:
+                row.major_area = value
+            elif "year" in label:
+                row.year_of_study = value
+
+    # 2) Checkboxes (often appear in paragraphs or table cells)
+    full_text = "\n".join([p.text for p in doc.paragraphs]).lower()
+
+    # crude but works if the form uses these words near checkbox markers
+    row.first_generation = "first generation" in full_text and ("☑" in full_text or "checked" in full_text)
+    row.indigenous = "indigenous" in full_text and "☑" in full_text
+    row.racialized = "racialized" in full_text and "☑" in full_text
+    row.lgbtq2si = "lgbtq" in full_text and "☑" in full_text
+    row.disability = "disability" in full_text and "☑" in full_text
+    row.international = "international" in full_text and "☑" in full_text
+
+    # 3) Essay capture by headings
+    row.research_statement = _extract_section(doc, ["research statement", "research essay", "research"])
+    row.leadership_statement = _extract_section(doc, ["leadership statement", "leadership essay", "leadership"])
+
+    return row
+
+
+def _extract_section(doc: Document, heading_keywords: list[str]) -> str:
+    paras = [p.text.strip() for p in doc.paragraphs]
+    # find heading
+    start = None
+    for i, t in enumerate(paras):
+        tl = t.lower()
+        if any(k in tl for k in heading_keywords) and len(t) <= 80:
+            start = i + 1
+            break
+    if start is None:
+        return ""
+
+    # collect until next "heading-like" short line
+    out = []
+    for j in range(start, len(paras)):
+        t = paras[j]
+        if not t:
+            continue
+        if len(t) <= 80 and t.endswith(":"):
+            break
+        # stop if another section header appears
+        tl = t.lower()
+        if any(k in tl for k in ["metadata", "signature", "leadership", "research statement", "academic info", "student info"]):
+            # heuristic: if looks like a section switch
+            if len(t) <= 80:
+                break
+        out.append(t)
+
+    return "\n".join(out).strip()
