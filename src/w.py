@@ -1,85 +1,157 @@
 from __future__ import annotations
-from typing import Dict, Tuple
-from docx import Document
+
+from docx2python import docx2python
 
 from models import ApplicationRow
+
+CHECK_TOKENS = ("☑", "☒", "✓", "✔", "[x]", "(x)", "ミ`")
+
+FIELD_KEYWORDS = [
+    ("student_name", ("student name", "full name", "name")),
+    ("pronouns", ("pronoun",)),
+    ("student_email", ("email", "email address")),
+    ("faculty", ("faculty",)),
+    ("major_area", ("major", "area of study", "discipline")),
+    ("year_of_study", ("year", "year of study")),
+    ("research_statement", ("research statement", "research essay")),
+    ("leadership_statement", ("leadership statement", "leadership essay")),
+]
+
+BOOL_KEYWORDS = [
+    ("first_generation", ("first generation", "first-generation")),
+    ("indigenous", ("indigenous",)),
+    ("racialized", ("racialized",)),
+    ("lgbtq2si", ("lgbtq", "2slgbtq")),
+    ("disability", ("disability", "disabled")),
+    ("international", ("international",)),
+]
 
 
 def _norm(s: str) -> str:
     return (s or "").strip()
 
 
-def parse_application_docx(path: str) -> ApplicationRow:
-    doc = Document(path)
-    row = ApplicationRow()
+def _cell_text(cell) -> str:
+    """Recursively collapse docx2python cell structures into a string."""
+    if isinstance(cell, str):
+        return cell
+    if isinstance(cell, (list, tuple)):
+        parts = [_cell_text(part) for part in cell]
+        return "\n".join(part for part in parts if part)
+    return str(cell)
 
-    # 1) Parse tables (common in forms)
-    # Strategy: treat table rows as "Label | Value"
-    for table in doc.tables:
-        for r in table.rows:
-            cells = [c.text.strip() for c in r.cells]
-            if len(cells) < 2:
+
+def _split_label_value(text: str) -> tuple[str, str] | tuple[None, None]:
+    for sep in (":", "—", "-", "–"):
+        if sep in text:
+            label, value = text.split(sep, 1)
+            label = _norm(label)
+            value = _norm(value)
+            if label and value:
+                return label, value
+    return None, None
+
+
+def _matches_keywords(target: str, keywords: tuple[str, ...]) -> bool:
+    return any(k in target for k in keywords)
+
+
+def _assign_field(row: ApplicationRow, label: str, value: str) -> bool:
+    label_lower = label.lower()
+    for attr, keywords in FIELD_KEYWORDS:
+        if _matches_keywords(label_lower, keywords):
+            current = getattr(row, attr)
+            if isinstance(current, str) and current:
+                # keep longer value to preserve richer responses
+                if len(value) > len(current):
+                    setattr(row, attr, value)
+            else:
+                setattr(row, attr, value)
+            return True
+
+    bool_value = value.lower() in {"yes", "y", "true", "checked", "x", "☑", "☒", "✓", "selected"}
+    for attr, keywords in BOOL_KEYWORDS:
+        if _matches_keywords(label_lower, keywords):
+            setattr(row, attr, bool_value)
+            return True
+
+    return False
+
+
+def _mark_boolean_from_text(row: ApplicationRow, text: str) -> None:
+    lowered = text.lower()
+    has_check = any(token.lower() in lowered for token in CHECK_TOKENS) or "checked" in lowered
+    if not has_check:
+        return
+
+    for attr, keywords in BOOL_KEYWORDS:
+        if _matches_keywords(lowered, keywords):
+            setattr(row, attr, True)
+
+
+def _iter_rows(body_data):
+    """Yield normalized rows (tables + paragraphs) from docx2python body."""
+    for section in body_data:
+        for table in section:
+            if not table:
                 continue
-            label = _norm(cells[0]).lower()
-            value = _norm(cells[1])
+            for row in table:
+                cells = [_norm(_cell_text(cell)) for cell in row]
+                if any(cells):
+                    yield cells
 
-            if "name" == label or "student name" in label:
-                row.student_name = value
-            elif "pronoun" in label:
-                row.pronouns = value
-            elif label == "email" or "email address" in label:
-                row.student_email = value
-            elif "faculty" in label:
-                row.faculty = value
-            elif "major" in label:
-                row.major_area = value
-            elif "year" in label:
-                row.year_of_study = value
 
-    # 2) Checkboxes (often appear in paragraphs or table cells)
-    full_text = "\n".join([p.text for p in doc.paragraphs]).lower()
+def parse_application_docx(path: str) -> ApplicationRow:
+    row = ApplicationRow()
+    with docx2python(path, html=False) as doc:
+        rows = list(_iter_rows(doc.body))
 
-    # crude but works if the form uses these words near checkbox markers
-    row.first_generation = "first generation" in full_text and ("☑" in full_text or "checked" in full_text)
-    row.indigenous = "indigenous" in full_text and "☑" in full_text
-    row.racialized = "racialized" in full_text and "☑" in full_text
-    row.lgbtq2si = "lgbtq" in full_text and "☑" in full_text
-    row.disability = "disability" in full_text and "☑" in full_text
-    row.international = "international" in full_text and "☑" in full_text
+        for cells in rows:
+            if len(cells) >= 2:
+                label, value = cells[0], cells[1]
+                if label and value:
+                    if _assign_field(row, label, value):
+                        continue
 
-    # 3) Essay capture by headings
-    row.research_statement = _extract_section(doc, ["research statement", "research essay", "research"])
-    row.leadership_statement = _extract_section(doc, ["leadership statement", "leadership essay", "leadership"])
+            # treat single-cell rows (and unhandled tables) as paragraph/in-line text
+            text = cells[0]
+            if not text:
+                continue
+
+            label, value = _split_label_value(text)
+            if label and value and _assign_field(row, label, value):
+                continue
+
+            _mark_boolean_from_text(row, text)
+
+        paragraph_lines = [
+            line.strip()
+            for line in doc.text.splitlines()
+            if line.strip()
+        ]
+        row.research_statement = _extract_section(paragraph_lines, ["research statement", "research essay", "research"])
+        row.leadership_statement = _extract_section(paragraph_lines, ["leadership statement", "leadership essay", "leadership"])
 
     return row
 
 
-def _extract_section(doc: Document, heading_keywords: list[str]) -> str:
-    paras = [p.text.strip() for p in doc.paragraphs]
-    # find heading
+def _extract_section(paragraphs: list[str], heading_keywords: list[str]) -> str:
     start = None
-    for i, t in enumerate(paras):
-        tl = t.lower()
-        if any(k in tl for k in heading_keywords) and len(t) <= 80:
-            start = i + 1
+    for idx, text in enumerate(paragraphs):
+        tl = text.lower()
+        if any(k in tl for k in heading_keywords) and len(text) <= 80:
+            start = idx + 1
             break
     if start is None:
         return ""
 
-    # collect until next "heading-like" short line
-    out = []
-    for j in range(start, len(paras)):
-        t = paras[j]
-        if not t:
+    out: list[str] = []
+    for text in paragraphs[start:]:
+        if not text:
             continue
-        if len(t) <= 80 and t.endswith(":"):
+        tl = text.lower()
+        if len(text) <= 80 and (text.endswith(":") or any(k in tl for k in ["metadata", "signature", "student info", "research statement", "leadership statement"])):
             break
-        # stop if another section header appears
-        tl = t.lower()
-        if any(k in tl for k in ["metadata", "signature", "leadership", "research statement", "academic info", "student info"]):
-            # heuristic: if looks like a section switch
-            if len(t) <= 80:
-                break
-        out.append(t)
+        out.append(text)
 
     return "\n".join(out).strip()
