@@ -26,4 +26,4 @@ class ApplicationRow:
     attachment_filename: str = ""
 
     def to_dict(self) -> Dict:
-        return asdict(self)
+        return asdict(self) 
