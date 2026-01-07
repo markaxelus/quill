@@ -113,6 +113,8 @@ if __name__ == "__main__":
     subject_contains = "SCHOLARS"
     client = OutlookClient()
     items = client.get_folder_items("Inbox")
+    account = client.outlook.Accounts.Item(1)
     for match in client.find_items(items, subject_contains):
         print(getattr(match, "SenderName", "<no sender>"), getattr(match, "Subject", "<no subject>"))
+        print(getattr(account, "SmtpAddress"))
 
