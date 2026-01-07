@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Calendar, Folder, FileText, Settings, Shield } from "lucide-react";
+import { Calendar, Folder, FileText, Settings, Shield, Filter } from "lucide-react";
 import { Label } from '../ui/label';
+import { Button } from "../ui/button";
 import {
   Card,
   CardContent,
@@ -15,15 +16,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import { Input } from "../ui/input";
 
-type Props = {};
+type SetupProps = {
+  onScan: (config: ScanConfig) => void;
+  onNavigate: (screen: string) => void;
+};
 
-const Setup = () => {
+export interface ScanConfig {
+  folder: string;
+  subjectFilter: string;
+  fromDate: string;
+  outputPath: string;
+}
+
+const Setup = ({ onNavigate, onScan }: SetupProps) => {
   const [folder, setFolder] = useState("Inbox");
-  const [subjectFilter, setSubjectFilter] = useState("scholars");
+  const [subjectFilter, setSubjectFilter] = useState("");
   const [fromDate, setFromDate] = useState("2026-01-01");
   const [outputPath, setOutputPath] = useState("");
-
+  
+  const handleScan = () => {
+    onScan({
+      folder,
+      subjectFilter,
+      fromDate,
+      outputPath
+    })
+  }
   return (
     <div className="min-h-screen bg-neutral-50 p-8">
       <div className="max-w-3xl mx-auto space-y-8">
@@ -40,9 +60,127 @@ const Setup = () => {
         </div>
 
         {/* Email Source */}
-        
+        <Card className="border-neutral-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-neutral-900">
+              <Folder className="size-5" />
+              Email Source
+            </CardTitle>
+            <CardDescription>Select which Outlook folder to scan</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Select value={folder} onValueChange={setFolder}>
+                <SelectTrigger id="folder" className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Inbox">Inbox</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-        
+        {/* Filters */}
+        <Card className="border-neutral-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-neutral-900">
+              <Filter className="size-5" />
+              Filters
+            </CardTitle>
+            <CardDescription>Narrow down which emails to process</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject Contains</Label>
+              <Input 
+                id="subject"
+                value={subjectFilter}
+                onChange={(e) => setSubjectFilter(e.target.value)}
+                placeholder="scholars"
+                className="bg-white"
+              />
+              <p className="text-sm text-neutral-500">
+                Only process emails with this keyword in the subject line
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="subject">From Date</Label>
+              <Input 
+                id="date"
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                placeholder="scholars"
+                className="bg-white"
+              />
+              <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-neutral-400 pointer-events-none" />
+              <p className="text-sm text-neutral-500">
+                Only include emails received on or after this date
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Output */}
+        <Card className="border-neutral-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-neutral-900">
+              <FileText className="size-5" />
+              Output
+            </CardTitle>
+            <CardDescription>Where to save the exported Excel file</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="output">Export Path</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="output"
+                  value={outputPath}
+                  onChange={(e) => setOutputPath(e.target.value)}
+                  className="bg-white flex-1"
+                />
+                <Button variant="outline" className="px-4">
+                  Browse
+                </Button>
+              </div>
+              <p className="text-sm text-neutral-500">
+                Filename: <span className="text-neutral-700 font-medium">scholars_export.xlsx</span>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
+        <div className="flex justify-between items-center pt-4">
+          <div className="flex gap-4">
+            <button 
+              onClick={() => onNavigate('settings')}
+              className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center gap-1 transition-colors"
+            >
+              <Settings className="size-4" />
+              Settings
+            </button>
+            <button
+              onClick={() => onNavigate('privacy')}
+              className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center gap-1 transition-colors"
+            >
+              <Shield className="size-4" />
+              Privacy
+            </button>
+          </div>
+          <Button
+            onClick={handleScan}
+            size="lg"
+            className="px-8 bg-neutral-900 hover:bg-neutral-800"
+
+          >
+            Scan Inbox
+          </Button>
+        </div>
       </div>
     </div>
   );
