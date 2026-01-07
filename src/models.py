@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
-from typing import Dict
+from typing import Dict, Optional
+from datetime import datetime
 
 @dataclass
 class ApplicationRow:
@@ -21,7 +22,7 @@ class ApplicationRow:
     leadership_statement: str = ""
 
     # metadata
-    received_date: str = ""
+    received_date: Optional[datetime] = None
     sender_email: str = ""
     attachment_filename: str = ""
 

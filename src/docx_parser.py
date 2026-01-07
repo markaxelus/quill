@@ -109,6 +109,6 @@ def index_parse_docx(path:str):
 
 # index_parse_docx("../raw.docx")
 # parse_docx("../soscscholarsprogramapplication-2025-26.docx")
-index_parse_docx("../soscscholarsprogramapplication-2025-26.docx")
+index_parse_docx("C:\\Users\\max3l\\Downloads\\soscscholarsprogramapplication-2025-26.docx")
 
 
