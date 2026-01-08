@@ -24,13 +24,20 @@ export interface EmailResult {
 
 interface ScanResultsProps {
   results: EmailResult[];
-  /* onParse: (selected: EmailResult[]) => void;
+  onParse: (selected: EmailResult[]) => void;
   onBack: () => void;
-  onRescan: () => void; */
+  onRescan: () => void; 
 }
 
-const index = ({ results }: ScanResultsProps) => {
+const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
   const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredResults = results.filter(
+    (r) => 
+      r.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.attachment.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <div className="min-h-screen bg-neutral-50 p-8">
@@ -120,8 +127,8 @@ const index = ({ results }: ScanResultsProps) => {
             </TableHeader>
 
             <TableBody>
-              {results.map((result) => (
-                <TableRow className="border-neutral-200">
+              {filteredResults.map((result) => (
+                <TableRow  className="border-neutral-200">
                   <TableCell className="">
                     <Checkbox 
                       className=' border-neutral-200 bg-neutral-100'
@@ -161,7 +168,7 @@ const index = ({ results }: ScanResultsProps) => {
         
         {/* Actions */}
         <div className="flex justify-between items-center pt-4">
-          <Button className="gap-2" variant="outline">
+          <Button className="gap-2" variant="outline" onClick={onBack}>
             <ChevronLeft className='size-4' />
             Back to setup
           </Button>
