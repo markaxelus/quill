@@ -49,7 +49,7 @@ def text_join(sentence:str)->str:
 
 # Index parser, a function that'll go to the specific index of the doc.body
 # and parser the used information
-def index_parse_docx(path:str):
+def index_parse_docx(path:str) -> ApplicationRow:
   doc = docx2python(path)
 
   student_info = doc.body[1]
