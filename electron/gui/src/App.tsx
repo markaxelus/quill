@@ -56,7 +56,7 @@ function App() {
       )}
 
       {currentScreen === 'results' &&
-        <Results />
+        <Results results={scanResults}/>
       }
     </div>
   );
