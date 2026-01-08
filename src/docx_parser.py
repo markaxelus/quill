@@ -33,6 +33,7 @@ def check_checkboxes(checkboxes:list)->str:
       return checkboxes[1:]
     return ''
   else:
+    
     for item in checkboxes:
       if item[0].encode('utf-8') == b'\xe2\x98\x92':
         checked.append(item[1:])
@@ -46,6 +47,46 @@ def text_join(sentence:str)->str:
           for paragraph in sentence
           for run in paragraph
         )
+
+def check_year(years:str)->str:
+  # check if 
+  split_year = years.split(",")
+  if(len(split_year) == 1):
+    if "first" in split_year[0].lower():
+      return "1"
+    elif "second" in split_year[0].lower():
+      return "2"
+    elif "third" in split_year[0].lower():
+      return "3"
+    elif "fourth" in split_year[0].lower():
+      return "4"
+    elif "fifth" in split_year[0].lower():
+      return "5"
+    elif "sixth" in split_year[0].lower():
+      return "6"
+    elif "seveth" in split_year[0].lower():
+      return "7"
+    else:
+      other_year = split_year[0].split(" ")
+      return other_year[1]
+  else:
+    return years
+  
+def check_margin(margin:str)->list:
+  output_list = [False]*6
+  if "Inuit" in margin:
+    output_list[0] = True
+  if "racialized" in margin:
+    output_list[1] = True
+  if "LGBTQ2SI+" in margin:
+    output_list[2] = True 
+  if "physical" in margin:
+    output_list[3] = True
+  if "generation" in margin:
+    output_list[4] = True
+  if "International" in margin:
+    output_list[5] = True 
+  return output_list
 
 # Index parser, a function that'll go to the specific index of the doc.body
 # and parser the used information
@@ -107,8 +148,34 @@ def index_parse_docx(path:str) -> ApplicationRow:
   print("signature:",signature)
   print("date:",date)
 
+  # turn str to list
+  num_year = check_year(year)
+  list_of_margin = check_margin(self_identity)
+
+  row = ApplicationRow(
+    student_name=name,
+    pronouns=pronoun,
+    student_email=email,
+    faculty=faculty,
+    major_area=major,
+    year_of_study=num_year,
+    indigenous=list_of_margin[0],
+    racialized=list_of_margin[1],
+    lgbtq2si=list_of_margin[2],
+    disability=list_of_margin[3],
+    first_generation=list_of_margin[4],
+    international=list_of_margin[5],
+    research_statement=research_statement,
+    leadership_statement=leader_statement,
+    received_date=None,
+    sender_email="",
+    attachment_filename=""
+  )
+  return row
+
 # index_parse_docx("../raw.docx")
 # parse_docx("../soscscholarsprogramapplication-2025-26.docx")
-index_parse_docx("C:\\Users\\max3l\\Downloads\\soscscholarsprogramapplication-2025-26.docx")
+index_parse_docx("../soscscholarsprogramapplication-2025-26.docx")
+print(index_parse_docx("../fixedcheck.docx"))
 
 
