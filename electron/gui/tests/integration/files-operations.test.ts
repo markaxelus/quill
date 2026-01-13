@@ -16,7 +16,7 @@ class FileManager {
   private tempDir: string;
 
   constructor() {
-    this.tempDir = path.join(os.tmpdir(), 'scholars_parser_attachment');
+    this.tempDir = path.join(os.tmpdir(), 'scholars_parser_attachments');
   }
 
   getTempDir(): string {
