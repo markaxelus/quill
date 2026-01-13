@@ -31,6 +31,8 @@ interface ScanResultsProps {
 
 const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
   const [searchQuery, setSearchQuery] = useState('')
+  // Default to all selected
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(results.map(r => r.id)))
 
   const filteredResults = results.filter(
     (r) => 
@@ -38,6 +40,35 @@ const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
       r.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.attachment.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const toggleAll = () => {
+    const allFilteredSelected = filteredResults.every(r => selectedIds.has(r.id))
+    const newSelected = new Set(selectedIds)
+    
+    if (allFilteredSelected) {
+      // Deselect all filtered
+      filteredResults.forEach(r => newSelected.delete(r.id))
+    } else {
+      // Select all filtered
+      filteredResults.forEach(r => newSelected.add(r.id))
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const handleParse = () => {
+    const selectedResults = results.filter(r => selectedIds.has(r.id))
+    onParse(selectedResults)
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50 p-8">
@@ -50,7 +81,7 @@ const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
           </div>
           <Button
             variant="default"
-            /* onClick={} */
+            onClick={onRescan}
             className='gap-2'
           >
             Rescan
@@ -63,7 +94,7 @@ const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
             <CardHeader className="pb-2">
               <CardDescription>Emails Scanned</CardDescription>
               <CardTitle className="text-3xl text-neutral-900">
-                123
+                {results.length}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -72,16 +103,16 @@ const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
             <CardHeader className="pb-2">
               <CardDescription>Matches Found</CardDescription>
               <CardTitle className="text-3xl text-neutral-900">
-                12
+                {results.filter(r => r.status !== 'error').length}
               </CardTitle>
             </CardHeader>
           </Card>
 
           <Card className="border-neutral-200 shadow-sm py-4 gap-2">
             <CardHeader className="pb-2">
-              <CardDescription>Attachments Found</CardDescription>
+              <CardDescription>Selected for Export</CardDescription>
               <CardTitle className="text-3xl text-neutral-900">
-                12
+                {selectedIds.size}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -101,11 +132,17 @@ const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  Select All
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={toggleAll}
+                >
+                  {filteredResults.every(r => selectedIds.has(r.id)) && filteredResults.length > 0 
+                    ? 'Deselect All' 
+                    : 'Select All'}
                 </Button>
                 <span className="text-sm text-neutral-600">
-                  11 of 12 selected
+                  {selectedIds.size} of {results.length} selected
                 </span>
               </div>
             </div>
@@ -117,7 +154,14 @@ const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
           <Table>
             <TableHeader>
               <TableRow className="border-neutral-200">
-                <TableHead className="w-12"></TableHead>
+                <TableHead className="w-12">
+                  <Checkbox 
+                    checked={filteredResults.length > 0 && filteredResults.every(r => selectedIds.has(r.id))}
+                    onCheckedChange={toggleAll}
+                    aria-label="Select all"
+                    className='border-neutral-200 bg-neutral-100 data-[state=checked]:bg-neutral-900 data-[state=checked]:text-white'
+                  />
+                </TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Sender</TableHead>
                 <TableHead>Subject</TableHead>
@@ -128,10 +172,12 @@ const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
 
             <TableBody>
               {filteredResults.map((result) => (
-                <TableRow  className="border-neutral-200">
+                <TableRow key={result.id} className="border-neutral-200">
                   <TableCell className="">
                     <Checkbox 
-                      className=' border-neutral-200 bg-neutral-100'
+                      checked={selectedIds.has(result.id)}
+                      onCheckedChange={() => toggleSelection(result.id)}
+                      className='border-neutral-200 bg-neutral-100 data-[state=checked]:bg-neutral-900 data-[state=checked]:text-white'
                     />
                   </TableCell>
                   <TableCell className="text-neutral-600 text-sm">
@@ -176,8 +222,10 @@ const index = ({ results, onParse, onBack, onRescan }: ScanResultsProps) => {
           <Button
             size="lg"        
             className="px-8 bg-neutral-900 hover:bg-neutral-800"
+            onClick={handleParse}
+            disabled={selectedIds.size === 0}
           >
-            Parse & Export
+            Parse & Export ({selectedIds.size})
           </Button>
         </div>
       </div>

@@ -56,7 +56,21 @@ function App() {
       )}
 
       {currentScreen === 'results' &&
-        <Results results={scanResults}/>
+        <Results 
+          results={scanResults}
+          onBack={() => setCurrentScreen('setup')}
+          onRescan={() => {
+            if (scanConfig) {
+              handleScan(scanConfig);
+            } else {
+              setCurrentScreen('setup');
+            }
+          }}
+          onParse={(selected) => {
+            console.log('Exporting selected results:', selected);
+            // TODO: Implement actual IPC call
+          }}
+        />
       }
     </div>
   );
