@@ -4,8 +4,9 @@ import './global.css';
 import Setup, {type ScanConfig} from './components/setup';
 import Results, { type EmailResult } from './components/result';
 import { Processing, type ProcessingSummary } from './components/processing';
+import { Completion } from './components/completion';
 
-type Screen = 'setup' | 'settings' | 'privacy' | 'processing' | 'results'
+type Screen = 'setup' | 'settings' | 'privacy' | 'processing' | 'results' | 'completion'
 
 const generateMockResults = (): EmailResult[] => {
   const applicants = [
@@ -38,6 +39,7 @@ function App() {
   const [scanConfig, setScanConfig] = useState<ScanConfig | null>(null);
   const [scanResults, setScanResults] = useState<EmailResult[]>([])
   const [itemsToProcess, setItemsToProcess] = useState<EmailResult[]>([])
+  const [processingSummary, setProcessingSummary] = useState<ProcessingSummary | null>(null)
 
   const handleNavigation = (screen: string) => {
     setCurrentScreen(screen as Screen)
@@ -79,10 +81,17 @@ function App() {
         <Processing
           items={itemsToProcess}
           onComplete={(summary) => {
-            console.log('Processing complete:', summary);
-            // Optional: stay on processing page to show summary or navigate
+            setProcessingSummary(summary)
+            setCurrentScreen('completion')
           }}
           onCancel={() => setCurrentScreen('results')}
+        />
+      )}
+
+      {currentScreen === 'completion' && processingSummary && (
+        <Completion 
+          summary={processingSummary}
+          onRunAgain={() => setCurrentScreen('setup')}
         />
       )}
     </div>
