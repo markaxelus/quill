@@ -21,6 +21,10 @@ import { Input } from "../ui/input";
 type SetupProps = {
   onScan: (config: ScanConfig) => void;
   onNavigate: (screen: string) => void;
+  defaults?: {
+    folder: string;
+    subject: string;
+  }
 };
 
 export interface ScanConfig {
@@ -30,9 +34,9 @@ export interface ScanConfig {
   outputPath: string;
 }
 
-const Setup = ({ onNavigate, onScan }: SetupProps) => {
-  const [folder, setFolder] = useState("Inbox");
-  const [subjectFilter, setSubjectFilter] = useState("");
+const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
+  const [folder, setFolder] = useState(defaults?.folder || "Inbox");
+  const [subjectFilter, setSubjectFilter] = useState(defaults?.subject || "");
   const [fromDate, setFromDate] = useState("2026-01-01");
   const [outputPath, setOutputPath] = useState("");
   

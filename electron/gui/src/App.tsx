@@ -5,6 +5,7 @@ import Setup, {type ScanConfig} from './components/setup';
 import Results, { type EmailResult } from './components/result';
 import { Processing, type ProcessingSummary } from './components/processing';
 import { Completion } from './components/completion';
+import { Settings } from './components/settings';
 
 type Screen = 'setup' | 'settings' | 'privacy' | 'processing' | 'results' | 'completion'
 
@@ -40,12 +41,26 @@ function App() {
   const [scanResults, setScanResults] = useState<EmailResult[]>([])
   const [itemsToProcess, setItemsToProcess] = useState<EmailResult[]>([])
   const [processingSummary, setProcessingSummary] = useState<ProcessingSummary | null>(null)
+  
+  // App Settings
+  const [settings, setSettings] = useState({
+    defaultFolder: 'Inbox',
+    defaultSubject: 'scholars',
+    skipIncomplete: true,
+    exportBehavior: 'new'
+  });
 
   const handleNavigation = (screen: string) => {
     setCurrentScreen(screen as Screen)
   }
 
   const handleScan = (config: ScanConfig) => {
+    // Merge parsing options into config (mocked logic for now)
+    console.log('Scanning with config:', config);
+    console.log('Using parsing options:', {
+      skipIncomplete: settings.skipIncomplete
+    });
+
     setScanConfig(config);
     // Simulate
     const results = generateMockResults();
@@ -56,7 +71,26 @@ function App() {
   return (
     <div className="size-full">
       {currentScreen === 'setup' && (
-        <Setup onNavigate={handleNavigation} onScan={handleScan} />
+        <Setup 
+          onNavigate={handleNavigation} 
+          onScan={handleScan}
+          defaults={{
+            folder: settings.defaultFolder,
+            subject: settings.defaultSubject
+          }}
+        />
+      )}
+
+      {currentScreen === 'settings' && (
+        <Settings 
+          initialSettings={settings}
+          onSave={(newSettings) => {
+            setSettings(newSettings);
+            alert('Settings saved!');
+            setCurrentScreen('setup');
+          }}
+          onBack={() => setCurrentScreen('setup')} 
+        />
       )}
 
       {currentScreen === 'results' &&
