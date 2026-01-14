@@ -66,10 +66,21 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
         {/* Email Source */}
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-neutral-900">
-              <Folder className="size-5" />
-              Email Source
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-neutral-900">
+                <Folder className="size-5" />
+                Email Source
+              </CardTitle>
+              <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50/50 rounded-full border border-emerald-100">
+                <div className="relative flex size-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
+                </div>
+                <span className="text-xs font-medium text-emerald-700">
+                  Connected: <span className="text-neutral-900 ml-0.5">max@quill.app</span>
+                </span>
+              </div>
+            </div>
             <CardDescription>Select which Outlook folder to scan</CardDescription>
           </CardHeader>
           <CardContent>

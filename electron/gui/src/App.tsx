@@ -6,6 +6,7 @@ import Results, { type EmailResult } from './components/result';
 import { Processing, type ProcessingSummary } from './components/processing';
 import { Completion } from './components/completion';
 import { Settings } from './components/settings';
+import { Privacy } from './components/privacy';
 
 type Screen = 'setup' | 'settings' | 'privacy' | 'processing' | 'results' | 'completion'
 
@@ -91,6 +92,10 @@ function App() {
           }}
           onBack={() => setCurrentScreen('setup')} 
         />
+      )}
+
+      {currentScreen === 'privacy' && (
+        <Privacy onBack={() => setCurrentScreen('setup')} />
       )}
 
       {currentScreen === 'results' &&
