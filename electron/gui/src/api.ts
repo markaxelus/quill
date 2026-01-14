@@ -19,6 +19,9 @@ declare global {
 
 export const api = {
   scanInbox: async (config: ScanConfig): Promise<EmailResult[]> => {
+    if (!window.electron) {
+      throw new Error("Electron API not found. Please run the app within Electron.");
+    }
     return window.electron.scanInbox(config);
   },
   
