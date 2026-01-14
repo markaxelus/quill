@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from './api';
 import './global.css';
 
 import Setup, {type ScanConfig} from './components/setup';
@@ -10,31 +11,7 @@ import { Privacy } from './components/privacy';
 
 type Screen = 'setup' | 'settings' | 'privacy' | 'processing' | 'results' | 'completion'
 
-const generateMockResults = (): EmailResult[] => {
-  const applicants = [
-    { name: 'Sarah Chen', email: 'sarah.chen@university.edu' },
-    { name: 'Michael Rodriguez', email: 'michael.rodriguez@college.edu' },
-    { name: 'Emily Watson', email: 'emily.watson@school.edu' },
-    { name: 'James Kim', email: 'james.kim@uni.edu' },
-    { name: 'Olivia Martinez', email: 'olivia.martinez@university.edu' },
-    { name: 'Daniel Thompson', email: 'daniel.thompson@college.edu' },
-    { name: 'Sophia Lee', email: 'sophia.lee@school.edu' },
-    { name: 'Alexander Brown', email: 'alexander.brown@uni.edu' },
-    { name: 'Isabella Garcia', email: 'isabella.garcia@university.edu' },
-    { name: 'Benjamin Taylor', email: 'benjamin.taylor@college.edu' },
-    { name: 'Mia Anderson', email: 'mia.anderson@school.edu' },
-    { name: 'Lucas White', email: 'lucas.white@uni.edu' },
-  ];
 
-  return applicants.map((applicant, idx) => ({
-    id: `email-${idx}`,
-    date: new Date(2026, 0, 2 + idx).toISOString(),
-    sender: applicant.email,
-    subject: `Scholars Program Application - ${applicant.name}`,
-    attachment: `${applicant.name.replace(' ', '_')}_Application.docx`,
-    status: idx === 10 ? 'warning' : 'ready',
-  }));
-};
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('setup');
@@ -55,18 +32,18 @@ function App() {
     setCurrentScreen(screen as Screen)
   }
 
-  const handleScan = (config: ScanConfig) => {
-    // Merge parsing options into config (mocked logic for now)
+  const handleScan = async (config: ScanConfig) => {
     console.log('Scanning with config:', config);
-    console.log('Using parsing options:', {
-      skipIncomplete: settings.skipIncomplete
-    });
-
     setScanConfig(config);
-    // Simulate
-    const results = generateMockResults();
-    setScanResults(results);
-    setCurrentScreen('results')
+    
+    try {
+      const results = await api.scanInbox(config);
+      setScanResults(results);
+      setCurrentScreen('results')
+    } catch (e) {
+      console.error("Scan failed:", e);
+      alert("Failed to scan: " + e);
+    }
   }
 
   return (
@@ -122,6 +99,12 @@ function App() {
           onComplete={(summary) => {
             setProcessingSummary(summary)
             setCurrentScreen('completion')
+          }}
+          startProcessing={async (onProgress) => {
+             return api.processApplications(itemsToProcess, {
+               skipIncomplete: settings.skipIncomplete,
+               exportBehavior: settings.exportBehavior
+             }, onProgress);
           }}
           onCancel={() => setCurrentScreen('results')}
         />

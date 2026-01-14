@@ -4,6 +4,8 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import type { ProcessingSummary } from '../processing';
 
+import { api } from '../../api';
+
 interface CompletionProps {
   summary: ProcessingSummary;
   onRunAgain: () => void;
@@ -12,16 +14,24 @@ interface CompletionProps {
 export function Completion({ summary, onRunAgain }: CompletionProps) {
   const [showSkipped, setShowSkipped] = useState(false);
 
-  const handleOpenExcel = () => {
-    // TODO: Implement IPC call to open file
-    console.log('Opening Excel file:', summary.outputPath);
-    alert('Opening Excel file:\n' + summary.outputPath);
+  const handleOpenExcel = async () => {
+    try {
+      await api.openFile(summary.outputPath);
+    } catch (e) {
+      console.error("Failed to open file:", e);
+      alert("Failed to open file: " + e);
+    }
   };
 
-  const handleOpenFolder = () => {
-     // TODO: Implement IPC call to open folder
-    console.log('Opening folder containing:', summary.outputPath);
-    alert('Opening folder containing:\n' + summary.outputPath);
+  const handleOpenFolder = async () => {
+    try {
+      // Open the folder containing the output file
+      const folderPath = summary.outputPath.substring(0, summary.outputPath.lastIndexOf('\\'));
+      await api.openFolder(folderPath || summary.outputPath);
+    } catch (e) {
+      console.error("Failed to open folder:", e);
+      alert("Failed to open folder: " + e);
+    }
   };
 
   return (

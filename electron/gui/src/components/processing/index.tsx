@@ -9,6 +9,7 @@ interface ProcessingProps {
   items: Array<{ id: string; attachment: string; sender: string }>;
   onComplete: (summary: ProcessingSummary) => void;
   onCancel: () => void;
+  startProcessing: (onProgress: (progress: any) => void) => Promise<ProcessingSummary>;
 }
 
 export interface ProcessingSummary {
@@ -26,17 +27,13 @@ interface LogEntry {
   timestamp: Date;
 }
 
-export function Processing({ items, onComplete, onCancel }: ProcessingProps) {
+export function Processing({ items, onComplete, onCancel, startProcessing }: ProcessingProps) {
   const totalItems = items.length;
   const [currentItem, setCurrentItem] = useState(0);
   const [currentFile, setCurrentFile] = useState('');
   const [currentEmail, setCurrentEmail] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [summary, setSummary] = useState({
-    successful: 0,
-    skipped: 0,
-    errors: 0,
-  });
+  
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const addLog = (type: LogEntry['type'], message: string) => {
@@ -44,57 +41,36 @@ export function Processing({ items, onComplete, onCancel }: ProcessingProps) {
   };
 
   useEffect(() => {
-    let currentIdx = 0;
-    const interval = setInterval(() => {
-      if (currentIdx >= totalItems) {
-        clearInterval(interval);
-        const finalSummary: ProcessingSummary = {
-          totalProcessed: totalItems,
-          successful: summary.successful,
-          skipped: summary.skipped,
-          errors: summary.errors,
-          outputPath: 'C:\\Documents\\scholars_export.xlsx',
-          skippedItems: [
-            // Mock skipped items if any
-            ...(summary.skipped > 0 ? [{ name: 'example_skip.docx', reason: 'Simulated skip' }] : [])
-          ],
-        };
-        setTimeout(() => onComplete(finalSummary), 500);
-        return;
-      }
-
-      const item = items[currentIdx];
-      const fileName = item.attachment;
-      const emailAddr = item.sender;
-
-      setCurrentItem(currentIdx + 1);
-      setCurrentFile(fileName);
-      setCurrentEmail(emailAddr);
-
-      // Simulate different outcomes
-      const outcome = Math.random();
-      if (outcome < 0.85) {
-        // Success
-        addLog('success', `✓ Parsed ${fileName} — All fields extracted`);
-        setSummary((prev) => ({ ...prev, successful: prev.successful + 1 }));
-      } else if (outcome < 0.95) {
-        // Warning/Skip
-        addLog('warning', `⚠ Skipped ${fileName} — Missing GPA field`);
-        setSummary((prev) => ({ ...prev, skipped: prev.skipped + 1 }));
-      } else {
-        // Error
-        addLog('error', `✕ Error processing ${fileName} — Corrupted file`);
-        setSummary((prev) => ({ ...prev, errors: prev.errors + 1 }));
-      }
-
-      currentIdx++;
-    }, 400);
+    let active = true;
 
     addLog('info', 'Starting local processing...');
     addLog('info', `Processing ${totalItems} applications`);
 
-    return () => clearInterval(interval);
-  }, [items, onComplete]); // logic fix: dependencies
+    startProcessing((progress) => {
+      if (!active) return;
+      
+      const { current, item } = progress;
+      // Update state
+      setCurrentItem(current);
+      if (item) {
+        setCurrentFile(item.attachment || '');
+        setCurrentEmail(item.sender || '');
+        addLog('info', `Processing ${item.attachment}...`);
+      }
+    })
+    .then((summary) => {
+      if (!active) return;
+      addLog('success', 'Processing complete!');
+      // Short delay to show 100%
+      setTimeout(() => onComplete(summary), 1000);
+    })
+    .catch((error) => {
+      if (!active) return;
+      addLog('error', `Processing failed: ${error}`);
+    });
+
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     // Auto-scroll logs
