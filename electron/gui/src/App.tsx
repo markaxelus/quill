@@ -3,6 +3,7 @@ import './global.css';
 
 import Setup, {type ScanConfig} from './components/setup';
 import Results, { type EmailResult } from './components/result';
+import { Processing, type ProcessingSummary } from './components/processing';
 
 type Screen = 'setup' | 'settings' | 'privacy' | 'processing' | 'results'
 
@@ -36,6 +37,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('setup');
   const [scanConfig, setScanConfig] = useState<ScanConfig | null>(null);
   const [scanResults, setScanResults] = useState<EmailResult[]>([])
+  const [itemsToProcess, setItemsToProcess] = useState<EmailResult[]>([])
 
   const handleNavigation = (screen: string) => {
     setCurrentScreen(screen as Screen)
@@ -67,11 +69,22 @@ function App() {
             }
           }}
           onParse={(selected) => {
-            console.log('Exporting selected results:', selected);
-            // TODO: Implement actual IPC call
+            setItemsToProcess(selected);
+            setCurrentScreen('processing');
           }}
         />
       }
+
+      {currentScreen === 'processing' && (
+        <Processing
+          items={itemsToProcess}
+          onComplete={(summary) => {
+            console.log('Processing complete:', summary);
+            // Optional: stay on processing page to show summary or navigate
+          }}
+          onCancel={() => setCurrentScreen('results')}
+        />
+      )}
     </div>
   );
 }
