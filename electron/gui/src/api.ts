@@ -9,6 +9,8 @@ interface ElectronAPI {
   onProcessingUpdate: (callback: (progress: any) => void) => () => void;
   openFile: (path: string) => Promise<void>;
   openFolder: (path: string) => Promise<void>;
+  getUser: () => Promise<string>;
+  selectDirectory: () => Promise<string | null>;
 }
 
 declare global {
@@ -27,7 +29,7 @@ export const api = {
   
   processApplications: async (
     items: EmailResult[], 
-    parsingOptions: { skipIncomplete: boolean; exportBehavior: string },
+    parsingOptions: { skipIncomplete: boolean; exportBehavior: string; outputPath?: string },
     onProgress: (progress: any) => void
   ): Promise<ProcessingSummary> => {
     
@@ -45,4 +47,12 @@ export const api = {
 
   openFile: (path: string) => window.electron.openFile(path),
   openFolder: (path: string) => window.electron.openFolder(path),
+  getUser: async (): Promise<string> => {
+    if (!window.electron) return "Demo User";
+    return window.electron.getUser();
+  },
+  selectDirectory: async (): Promise<string | null> => {
+     if (!window.electron) return null;
+     return window.electron.selectDirectory();
+  }
 };

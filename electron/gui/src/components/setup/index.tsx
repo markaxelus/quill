@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../../api";
 import { Calendar, Folder, FileText, Settings, Shield, Filter } from "lucide-react";
 import { Label } from '../ui/label';
 import { Button } from "../ui/button";
@@ -39,6 +40,22 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
   const [subjectFilter, setSubjectFilter] = useState(defaults?.subject || "");
   const [fromDate, setFromDate] = useState("2026-01-01");
   const [outputPath, setOutputPath] = useState("");
+  const [currentUser, setCurrentUser] = useState("Loading...");
+
+  useEffect(() => {
+    api.getUser().then(setCurrentUser).catch(() => setCurrentUser("Unknown"));
+  }, []);
+
+  const handleBrowse = async () => {
+    try {
+      const path = await api.selectDirectory();
+      if (path) {
+        setOutputPath(path);
+      }
+    } catch (e) {
+      console.error("Failed to select directory:", e);
+    }
+  };
   
   const handleScan = () => {
     onScan({
@@ -77,7 +94,7 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
                   <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
                 </div>
                 <span className="text-xs font-medium text-emerald-700">
-                  Connected: <span className="text-neutral-900 ml-0.5">max@quill.app</span>
+                  Connected: <span className="text-neutral-900 ml-0.5">{currentUser}</span>
                 </span>
               </div>
             </div>
@@ -146,7 +163,7 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
               <FileText className="size-5" />
               Output
             </CardTitle>
-            <CardDescription>Where to save the exported Excel file</CardDescription>
+            <CardDescription>Select the folder where the Excel file will be saved</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -158,7 +175,7 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
                   onChange={(e) => setOutputPath(e.target.value)}
                   className="bg-white flex-1"
                 />
-                <Button variant="outline" className="px-4">
+                <Button variant="outline" className="px-4" onClick={handleBrowse}>
                   Browse
                 </Button>
               </div>
@@ -191,7 +208,8 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
             onClick={handleScan}
             size="lg"
             className="px-8 bg-neutral-900 hover:bg-neutral-800"
-
+            disabled={!outputPath}
+            title={!outputPath ? "Please select an export folder first" : ""}
           >
             Scan Inbox
           </Button>

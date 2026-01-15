@@ -113,6 +113,23 @@ app.whenReady().then(() => {
       return shell.openPath(folderPath); 
   });
 
+  ipcMain.handle("get-user", async () => {
+    try {
+      return await runPythonCommand("get-user", {});
+    } catch (e) {
+      console.error("Failed to get user:", e);
+      return "Unknown User";
+    }
+  });
+
+  ipcMain.handle("select-directory", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory', 'createDirectory']
+    });
+    if (result.canceled) return null;
+    return result.filePaths[0];
+  });
+
   createWindow();
 });
 

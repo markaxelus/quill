@@ -103,7 +103,8 @@ function App() {
           startProcessing={async (onProgress) => {
              return api.processApplications(itemsToProcess, {
                skipIncomplete: settings.skipIncomplete,
-               exportBehavior: settings.exportBehavior
+               exportBehavior: settings.exportBehavior,
+               outputPath: scanConfig?.outputPath
              }, onProgress);
           }}
           onCancel={() => setCurrentScreen('results')}

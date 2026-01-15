@@ -9,5 +9,7 @@ contextBridge.exposeInMainWorld('electron', {
         return () => ipcRenderer.removeListener('processing-update', subscription);
     },
     openFile: (path) => ipcRenderer.invoke('open-file', path),
-    openFolder: (path) => ipcRenderer.invoke('open-folder', path)
+    openFolder: (path) => ipcRenderer.invoke('open-folder', path),
+    getUser: () => ipcRenderer.invoke('get-user'),
+    selectDirectory: () => ipcRenderer.invoke('select-directory')
 });
