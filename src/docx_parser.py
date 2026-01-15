@@ -1,114 +1,88 @@
 from __future__ import annotations
 from docx2python import docx2python
+import re
 
-from models import ApplicationRow
-import os
+def _get_cell_text(table_list, table_idx, row_idx, cell_idx):
+    try:
+        # docx2python: body -> table -> row -> cell -> paragraphs -> runs
+        cell = table_list[table_idx][row_idx][cell_idx]
+        return "\n".join("".join(run for run in paragraph) for paragraph in cell).strip()
+    except (IndexError, TypeError):
+        return ""
 
-def _norm(s: str) -> str:
-  return (s or "").strip()
+def _extract_checked_labels(text: str) -> list[str]:
+    # Checkbox symbols: ☑ (\u2611), ☒ (\u2612) are checked. ☐ (\u2610) is unchecked.
+    # We split by any checkbox symbol and see which one precedes the label.
+    # A better way: find all checkboxes and the text following them.
+    
+    # Regex to find a checkbox and anything following it until the next checkbox or end of string
+    pattern = r'([\u2610-\u2612])\s*([^\u2610-\u2612]+)'
+    matches = re.findall(pattern, text)
+    
+    checked_labels = []
+    for marker, label in matches:
+        if marker in ['\u2611', '\u2612']:
+            checked_labels.append(label.strip())
+    return checked_labels
 
-def parse_docx(path: str):
-  doc = docx2python(path)
-  row = ApplicationRow()
+def index_parse_docx(path: str) -> dict:
+    doc = docx2python(path)
+    body = doc.body
 
-  # doc.body -> tables -> rows -> cells -> paragraphs -> runs
-  for table in doc.body:
-    for r in table:
-      cells = []
-      for cell in r:
-        # flatten all text in the cell so checkboxes show up
-        text = "".join(
-          run
-          for paragraph in cell
-          for run in paragraph
-        )
-        cells.append(repr(text))
-      print(cells)
+    # Mapping based on structure.log
+    # Item 1: Student info
+    name = _get_cell_text(body, 1, 0, 1)
+    pronouns = _get_cell_text(body, 1, 1, 1)
+    email = _get_cell_text(body, 1, 2, 1)
 
-# return a concat of checkboxes
-def check_checkboxes(checkboxes:list)->str:
-  checked = []
-  if not isinstance(checkboxes,list):
-    if checkboxes[0].encode('utf-8') == b'\xe2\x98\x92':
-      return checkboxes[1:]
-    return ''
-  else:
-    for item in checkboxes:
-      if item[0].encode('utf-8') == b'\xe2\x98\x92':
-        checked.append(item[1:])
+    # Item 3: Eligibility Part 1
+    faculty = _get_cell_text(body, 3, 0, 1)
+    major = _get_cell_text(body, 3, 1, 1)
+    year_text = _get_cell_text(body, 3, 2, 1)
+    years_checked = _extract_checked_labels(year_text)
+    year = ", ".join(years_checked)
 
-    text = ",".join(checked)
-    return text
+    # Item 5: Identity
+    identity_text = _get_cell_text(body, 5, 1, 1)
+    identities_checked = _extract_checked_labels(identity_text)
+    identity_str = " | ".join(identities_checked)
 
-def text_join(sentence:str)->str:
-    return "".join(
-          run
-          for paragraph in sentence
-          for run in paragraph
-        )
+    # Statements (Large boxes)
+    research_statement = _get_cell_text(body, 9, 0, 0)
+    leadership_statement = _get_cell_text(body, 11, 0, 0)
 
-# Index parser, a function that'll go to the specific index of the doc.body
-# and parser the used information
-def index_parse_docx(path:str) -> ApplicationRow:
-  doc = docx2python(path)
+    # Approvals
+    approval_text = _get_cell_text(body, 12, 0, 0)
+    approved = len(_extract_checked_labels(approval_text)) > 0
 
-  student_info = doc.body[1]
-  eligibility_info = doc.body[3:7]
-  research_info = doc.body[8:10]
-  leader_info = doc.body[10:12]
-  approval_info = doc.body[12:14] 
+    # Signature/Date
+    signature = _get_cell_text(body, 13, 0, 1)
+    date = _get_cell_text(body, 13, 1, 1)
 
+    return {
+        "name": name,
+        "pronoun": pronouns,
+        "email": email,
+        "faculty": faculty,
+        "major": major,
+        "year": year,
+        "identity": identity_str,
+        "research_statement": research_statement,
+        "leader_statement": leadership_statement,
+        "agree_to_register": approved,
+        "signature": signature,
+        "date": date
+    }
 
-  # Student info
-  name = student_info[0][1][0]
-  pronoun = student_info[1][1][0]
-  email = student_info[2][1][0]
+if __name__ == "__main__":
+    import json
+    import os
+    test_file = "soscscholarsprogramapplication-2025-26.docx"
+    if os.path.exists(test_file):
+        data = index_parse_docx(test_file)
+        print(json.dumps(data, indent=2))
+    else:
+        print(f"Test file not found: {test_file}")
 
-  # Eligibility info 
-  # index one : 0 is faculty/major/year, 1 is other year box, 2 is identity, 3 is other identity box
-  # index two : which row
-  # index three: which column
-  faculty = eligibility_info[0][0][1][0]
-  major = eligibility_info[0][1][1][0]
-  year = check_checkboxes(eligibility_info[0][2][1])
-  other_year = eligibility_info[1][0][0][0]
-
-  self_identity = check_checkboxes(eligibility_info[2][1][1])
-  other_identity = eligibility_info[3][0][0][0]
-  
-  if other_year != '':
-    year= year[:-1] +":"+ other_year
-
-  if other_identity != '':
-    self_identity += other_identity
-
-  # Research Statement
-  research_statement = text_join(research_info[1][0][0])
-  # print(research_statement)
-
-  # Leader Statement
-  leader_statement = text_join(leader_info[1][0][0])
-  # print(leader_statement)
-
-  # Approvals
-  agree_to_register = True if check_checkboxes(approval_info[0][0][0][3]) else False
-  signature = approval_info[1][0][1][0]
-
-  #TODO: Need a check if user put different type of string
-  date = approval_info[1][1][1][0]
-
-  # Output
-  print(f"Name:{name}, Pronoun:{pronoun}, Email:{email}")
-  print(f"Fact:{faculty}, Major:{major}, Year:{year}")
-  print("Identity:",self_identity)
-  print("research:",research_statement)
-  print("leader:",leader_statement)
-  print("Did the user agree to register:",agree_to_register)
-  print("signature:",signature)
-  print("date:",date)
-
-# index_parse_docx("../raw.docx")
-# parse_docx("../soscscholarsprogramapplication-2025-26.docx")
-index_parse_docx("C:\\Users\\max3l\\Downloads\\soscscholarsprogramapplication-2025-26.docx")
 
 

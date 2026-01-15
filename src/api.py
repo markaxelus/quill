@@ -50,7 +50,20 @@ def handle_scan(payload: Dict[str, Any]):
 
 def handle_process(payload: Dict[str, Any]):
   items = payload.get("items", [])
-  output_path = payload.get("outputPath", "output.xlsx")
+  base_output_path = payload.get("outputPath", "")
+  if not base_output_path:
+    base_output_path = os.getcwd()
+    
+  # Create a timestamped folder for this batch
+  timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+  export_folder = os.path.join(base_output_path, f"Scholars_Export_{timestamp}")
+  
+  try:
+    os.makedirs(export_folder, exist_ok=True)
+    output_path = os.path.join(export_folder, "scholars_export.xlsx")
+  except Exception as e:
+    # If folder creation fails, fallback to simple filename in base dir
+    output_path = os.path.join(base_output_path, f"scholars_export_{timestamp}.xlsx")
   
   processed_rows: List[ApplicationRow] = []
   failed_items = []
@@ -80,15 +93,25 @@ def handle_process(payload: Dict[str, Any]):
         row = ApplicationRow()
               
         # If parser returns data, map it. Otherwise we just have empty student data
-        if isinstance(data, dict):
-          row.student_name = data.get("name", "")
-          row.pronouns = data.get("pronoun", "")
-          row.student_email = data.get("email", "")
-          row.faculty = data.get("faculty", "")
-          row.major_area = data.get("major", "")
-          row.year_of_study = data.get("year", "")
-          row.research_statement = data.get("research_statement", "")
-          row.leadership_statement = data.get("leader_statement", "")
+        # Parser returns a dict
+        row.student_name = data.get("name", "")
+        row.pronouns = data.get("pronoun", "")
+        row.student_email = data.get("email", "")
+        row.faculty = data.get("faculty", "")
+        row.major_area = data.get("major", "")
+        row.year_of_study = data.get("year", "")
+        
+        # Parse identity booleans from the identity string
+        ids = data.get("identity", "")
+        row.indigenous = "Indigenous" in ids
+        row.racialized = "racialized" in ids.lower()
+        row.lgbtq2si = "LGBTQ" in ids
+        row.disability = "disability" in ids.lower()
+        row.first_generation = "first-generation" in ids.lower()
+        row.international = "International" in ids
+        
+        row.research_statement = data.get("research_statement", "")
+        row.leadership_statement = data.get("leader_statement", "")
         
         # Metadata from email is always available
         date_str = item.get("date")
@@ -103,11 +126,11 @@ def handle_process(payload: Dict[str, Any]):
         # If parsing crashes, we fail the item
         raise Exception(f"Parsing error: {str(parse_error)}")
           
-      except Exception as e:
-        failed_items.append({
-          "name": item.get("sender"), 
-          "reason": str(e)
-          })
+    except Exception as e:
+      failed_items.append({
+        "name": item.get("sender"), 
+        "reason": str(e)
+      })
           
   # Export
   try:
@@ -127,6 +150,15 @@ def handle_process(payload: Dict[str, Any]):
   except Exception as e:
     send_response({"status": "error", "message": f"Export failed: {e}"})
 
+
+def handle_get_user(payload: Dict[str, Any]):
+    try:
+        client = OutlookClient()
+        email = client.get_current_user_email()
+        send_response({"status": "success", "data": email})
+    except Exception as e:
+        send_response({"status": "error", "message": str(e)})
+
 def main():
   # Read stdin line by line
   for line in sys.stdin:
@@ -141,6 +173,8 @@ def main():
         handle_scan(payload)
       elif command == "process":
         handle_process(payload)
+      elif command == "get-user":
+        handle_get_user(payload)
       elif command == "ping":
         send_response({"status": "pong"})
       else:

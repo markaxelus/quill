@@ -1,0 +1,97 @@
+Document Body Length: 15
+
+--- Top Level Item 0 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: 'Student Information'
+
+--- Top Level Item 1 ---
+Type: Table (3 rows)
+  Row 0:
+    Cell 0: 'Student Name: First and Last'
+    Cell 1: 'Mark Axelus'
+  Row 1:
+    Cell 0: 'Preferred Pronouns:'
+    Cell 1: 'He/Him'
+  Row 2:
+    Cell 0: 'Email:'
+    Cell 1: 'markaxelus@uvic.ca'
+
+--- Top Level Item 2 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: 'Eligibility Criteria'
+
+--- Top Level Item 3 ---
+Type: Table (3 rows)
+  Row 0:
+    Cell 0: 'Faculty:'
+    Cell 1: 'Computer Science'
+  Row 1:
+    Cell 0: 'Area of interest for major:'
+    Cell 1: 'NeuroPsyc'
+  Row 2:
+    Cell 0: 'Year of study:The Social Sciences Scholars Program is reserved primarily for students entering 1st Year, with exceptional 2nd Year students or transfer students considered if space is available.'
+    Cell 1: '☐ First Year☐ Second Year☐ Third Year☐ Fourth Year☐ Other '
+
+--- Top Level Item 4 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: ''
+
+--- Top Level Item 5 ---
+Type: Table (2 rows)
+  Row 0:
+    Cell 0: ''
+  Row 1:
+    Cell 0: 'Please indicate all that apply if you wish to self-identify as:'
+    Cell 1: '☐ Person who identifies as First Nations, Métis, Inuit, or any other Indigenous peoples☐ Person who identifies as a racialized/visible minority☐ Person who identifies as LGBTQ2SI+☐ Person with visible and/or invisible (physical and/or mental) disability or chronic illness☐ Person with lived experience in care☐ Person who is first in family to attend university (first-generation)☐ International student☐ None of the above☐ Prefer not to say☐ Other:'
+
+--- Top Level Item 6 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: ''
+
+--- Top Level Item 7 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: ''
+
+--- Top Level Item 8 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: 'See next page…Research StatementWrite a research statement in the space provided below that highlights what you will bring to the Social Sciences Scholars Program in terms of interest, experience, skills, and/or potential for conducting social science research. (½ page max) '
+
+--- Top Level Item 9 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: '\t\t\t\t'
+
+--- Top Level Item 10 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: 'Leadership StatementWrite a leadership statement in the space provided below that highlights what you will bring to the Social Sciences Scholars Program in terms of demonstrated experience or potential for leadership, openness to challenge, engagement with community, curiosity, character, service, and commitment to creating positive social change. (½ page max)'
+
+--- Top Level Item 11 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: '\t\t\t\t'
+
+--- Top Level Item 12 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: 'ApprovalsPlease check the box below to indicate that you agree:If admitted to the Social Sciences Scholars Program, ☐ I agree to register in SOSC 100 (Scholars Seminar) the next time it is offered, and to attend and/or participate in Social Sciences Scholars Program activities and events. '
+
+--- Top Level Item 13 ---
+Type: Table (2 rows)
+  Row 0:
+    Cell 0: 'Signature:'
+    Cell 1: ''
+  Row 1:
+    Cell 0: 'Date:'
+    Cell 1: ''
+
+--- Top Level Item 14 ---
+Type: Table (1 rows)
+  Row 0:
+    Cell 0: 'Next Steps1)\tPlease submit this completed application form via email to <a href="mailto:soscassist@uvic.ca">soscassist@uvic.ca</a> by the application deadline of March 28, 2025.2)\tThe Associate Dean Academic in the Faculty of Social Sciences will oversee the review and adjudication of Social Sciences Scholars Program applications in consultation with the instructors of SOSC 100.'

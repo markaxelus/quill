@@ -25,6 +25,15 @@ class OutlookClient:
     inbox = self.outlook.GetDefaultFolder(INBOX_FOLDER)
     return inbox.Items
   
+  def get_current_user_email(self):
+    try:
+      # Try to get the first account
+      if self.outlook.Accounts.Count > 0:
+        return self.outlook.Accounts.Item(1).SmtpAddress
+      return self.outlook.CurrentUser.Address
+    except Exception:
+      return "Unknown"
+  
   def find_items(self, items, subject_contains):
     try:
         items.Sort("[ReceivedTime]", True)
@@ -63,6 +72,8 @@ class OutlookClient:
         received = item.ReceivedTime
         if received is None: 
            continue
+        # Ensure received is naive for comparison
+        received = received.replace(tzinfo=None)
         if received < from_date:
            break
       
