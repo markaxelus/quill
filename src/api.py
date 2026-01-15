@@ -18,7 +18,7 @@ def send_response(data: Any):
 
 def handle_scan(payload: Dict[str, Any]):
   folder = payload.get("folder", "Inbox")
-  subject_filter = payload.get("subject", "")
+  subject_filter = payload.get("subjectFilter", "")
   from_date_str = payload.get("fromDate", "2026-01-01")
   
   try:
@@ -50,7 +50,11 @@ def handle_scan(payload: Dict[str, Any]):
 
 def handle_process(payload: Dict[str, Any]):
   items = payload.get("items", [])
-  base_output_path = payload.get("outputPath", "")
+  # Check for outputPath at top level or inside options
+  base_output_path = payload.get("outputPath")
+  if not base_output_path:
+      base_output_path = payload.get("options", {}).get("outputPath", "")
+      
   if not base_output_path:
     base_output_path = os.getcwd()
     
