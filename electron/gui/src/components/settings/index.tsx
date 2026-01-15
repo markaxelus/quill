@@ -18,6 +18,7 @@ interface AppSettings {
   defaultSubject: string;
   skipIncomplete: boolean;
   exportBehavior: string;
+  outputPath: string;
 }
 
 interface SettingsProps {
@@ -37,7 +38,8 @@ export function Settings({ initialSettings, onSave, onBack }: SettingsProps) {
       defaultFolder,
       defaultSubject,
       skipIncomplete,
-      exportBehavior
+      exportBehavior,
+      outputPath: initialSettings.outputPath
     });
   };
 

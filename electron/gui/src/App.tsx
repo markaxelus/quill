@@ -25,7 +25,8 @@ function App() {
     defaultFolder: 'Inbox',
     defaultSubject: 'scholars',
     skipIncomplete: true,
-    exportBehavior: 'new'
+    exportBehavior: 'new',
+    outputPath: ''
   });
 
   const handleNavigation = (screen: string) => {
@@ -35,6 +36,7 @@ function App() {
   const handleScan = async (config: ScanConfig) => {
     console.log('Scanning with config:', config);
     setScanConfig(config);
+    setSettings(prev => ({ ...prev, outputPath: config.outputPath }));
     
     try {
       const results = await api.scanInbox(config);
@@ -54,7 +56,8 @@ function App() {
           onScan={handleScan}
           defaults={{
             folder: settings.defaultFolder,
-            subject: settings.defaultSubject
+            subject: settings.defaultSubject,
+            outputPath: settings.outputPath
           }}
         />
       )}

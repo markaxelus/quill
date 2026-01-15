@@ -25,6 +25,7 @@ type SetupProps = {
   defaults?: {
     folder: string;
     subject: string;
+    outputPath: string;
   }
 };
 
@@ -39,7 +40,7 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
   const [folder, setFolder] = useState(defaults?.folder || "Inbox");
   const [subjectFilter, setSubjectFilter] = useState(defaults?.subject || "");
   const [fromDate, setFromDate] = useState("2026-01-01");
-  const [outputPath, setOutputPath] = useState("");
+  const [outputPath, setOutputPath] = useState(defaults?.outputPath || "");
   const [currentUser, setCurrentUser] = useState("Loading...");
 
   useEffect(() => {
