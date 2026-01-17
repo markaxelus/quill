@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
     scanInbox: (config) => ipcRenderer.invoke('scan-inbox', config),
+    scanLocal: (config) => ipcRenderer.invoke('scan-local', config),
     processJobs: (items, options) => ipcRenderer.invoke('process-jobs', { items, options }),
     onProcessingUpdate: (callback) => {
         const subscription = (_event, value) => callback(value);

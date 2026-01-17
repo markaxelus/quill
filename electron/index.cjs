@@ -18,11 +18,11 @@ function runPythonCommand(command, payload, onData) {
   return new Promise((resolve, reject) => {
     const pythonPath = getPythonPath();
     const scriptPath = path.join(path.dirname(__dirname), "src", "api.py");
-    
+
     console.log(`Spawning Python: ${pythonPath} ${scriptPath}`);
 
     const pyProcess = spawn(pythonPath, [scriptPath]);
-    
+
     // Send input
     const input = JSON.stringify({ command, payload }) + "\n";
     pyProcess.stdin.write(input);
@@ -39,14 +39,14 @@ function runPythonCommand(command, payload, onData) {
           if (json.type === 'progress') {
             onData && onData(json);
           } else if (json.type === 'complete') {
-             resolve(json);
+            resolve(json);
           } else {
-             // Standard response
-             if (json.status === 'error') {
-               reject(new Error(json.message));
-             } else if (json.status === 'success') {
-                 resolve(json.data);
-             } 
+            // Standard response
+            if (json.status === 'error') {
+              reject(new Error(json.message));
+            } else if (json.status === 'success') {
+              resolve(json.data);
+            }
           }
         } catch (e) {
           console.error("Failed to parse Python output:", line);
@@ -99,6 +99,15 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle("scan-local", async (event, config) => {
+    try {
+      return await runPythonCommand("scan-local", config);
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  });
+
   ipcMain.handle("process-jobs", async (event, { items, options }) => {
     return await runPythonCommand("process", { items, ...options }, (progress) => {
       mainWindow.webContents.send("processing-update", progress);
@@ -106,11 +115,11 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("open-file", async (event, filePath) => {
-      return shell.openPath(filePath);
+    return shell.openPath(filePath);
   });
-    
+
   ipcMain.handle("open-folder", async (event, folderPath) => {
-      return shell.openPath(folderPath); 
+    return shell.openPath(folderPath);
   });
 
   ipcMain.handle("get-user", async () => {
