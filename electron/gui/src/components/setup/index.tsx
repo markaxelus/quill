@@ -34,20 +34,25 @@ export interface ScanConfig {
   subjectFilter: string;
   fromDate: string;
   outputPath: string;
+  isLocal?: boolean;
+  localPath?: string;
 }
 
 const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
+  const [sourceMode, setSourceMode] = useState<'outlook' | 'local'>('outlook');
   const [folder, setFolder] = useState(defaults?.folder || "Inbox");
+  const [localPath, setLocalPath] = useState("");
   const [subjectFilter, setSubjectFilter] = useState(defaults?.subject || "");
   const [fromDate, setFromDate] = useState("2026-01-01");
   const [outputPath, setOutputPath] = useState(defaults?.outputPath || "");
   const [currentUser, setCurrentUser] = useState("Loading...");
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     api.getUser().then(setCurrentUser).catch(() => setCurrentUser("Unknown"));
   }, []);
 
-  const handleBrowse = async () => {
+  const handleBrowseOutput = async () => {
     try {
       const path = await api.selectDirectory();
       if (path) {
@@ -57,15 +62,43 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
       console.error("Failed to select directory:", e);
     }
   };
-  
-  const handleScan = () => {
-    onScan({
-      folder,
-      subjectFilter,
-      fromDate,
-      outputPath
-    })
+
+  const handleBrowseLocalSource = async () => {
+    try {
+      const path = await api.selectDirectory();
+      if (path) {
+        setLocalPath(path);
+      }
+    } catch (e) {
+      console.error("Failed to select local source directory:", e);
+    }
+  };
+
+  const handleScan = async () => {
+    setIsScanning(true);
+    try {
+      if (sourceMode === 'outlook') {
+        await onScan({
+          folder,
+          subjectFilter,
+          fromDate,
+          outputPath
+        });
+      } else {
+        await onScan({
+          folder: 'local',
+          subjectFilter: localPath,
+          fromDate: '',
+          outputPath,
+          isLocal: true,
+          localPath
+        });
+      }
+    } finally {
+      setIsScanning(false);
+    }
   }
+
   return (
     <div className="min-h-screen bg-neutral-50 p-8">
       <div className="max-w-3xl mx-auto space-y-8">
@@ -75,29 +108,134 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
             Scholars Application Parser
           </h1>
           <p className="text-neutral-600">
-            Process Scholars Program applications from email attachments into a
-            structured Excel file. All processing happens locally on your
-            computer.
+            Process Scholars Program applications from email attachments or local folders into a
+            structured Excel file.
           </p>
         </div>
 
-        {/* Email Source */}
-        <Card className="border-neutral-200 shadow-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+        {/* Source Selection */}
+        <div className="flex gap-2 p-1 bg-neutral-200/50 rounded-lg w-fit">
+          <button
+            onClick={() => setSourceMode('outlook')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${sourceMode === 'outlook' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-600 hover:text-neutral-900'}`}
+          >
+            Outlook Scan
+          </button>
+          <button
+            onClick={() => setSourceMode('local')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${sourceMode === 'local' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-600 hover:text-neutral-900'}`}
+          >
+            Local Folder
+          </button>
+        </div>
+
+        {sourceMode === 'outlook' ? (
+          <>
+            {/* Email Source */}
+            <Card className="border-neutral-200 shadow-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-neutral-900">
+                    <Folder className="size-5" />
+                    Email Source
+                  </CardTitle>
+                  <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50/50 rounded-full border border-emerald-100">
+                    <div className="relative flex size-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
+                    </div>
+                    <span className="text-xs font-medium text-emerald-700">
+                      Connected: <span className="text-neutral-900 ml-0.5">{currentUser}</span>
+                    </span>
+                  </div>
+                </div>
+                <CardDescription>Select which Outlook folder to scan</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Select value={folder} onValueChange={setFolder}>
+                    <SelectTrigger id="folder" className="bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Inbox">Inbox</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Filters */}
+            <Card className="border-neutral-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-neutral-900">
+                  <Filter className="size-5" />
+                  Filters
+                </CardTitle>
+                <CardDescription>Narrow down which emails to process</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject Contains</Label>
+                  <Input
+                    id="subject"
+                    value={subjectFilter}
+                    onChange={(e) => setSubjectFilter(e.target.value)}
+                    placeholder="scholars"
+                    className="bg-white"
+                  />
+                  <p className="text-sm text-neutral-500">
+                    Only process emails with this keyword in the subject line
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date">From Date</Label>
+                  <div className="relative">
+                    <Input
+                      id="date"
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className="bg-white"
+                    />
+                  </div>
+                  <p className="text-sm text-neutral-500">
+                    Only include emails received on or after this date
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <Card className="border-neutral-200 shadow-sm">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2 text-neutral-900">
                 <Folder className="size-5" />
-                Email Source
+                Local Folder Source
               </CardTitle>
-              <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50/50 rounded-full border border-emerald-100">
-                <div className="relative flex size-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
+              <CardDescription>Select a folder containing .docx application files</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="localSource">Source Directory</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="localSource"
+                    value={localPath}
+                    onChange={(e) => setLocalPath(e.target.value)}
+                    placeholder="C:\Users\Admins\Downloads\Applications"
+                    className="bg-white flex-1"
+                  />
+                  <Button variant="outline" onClick={handleBrowseLocalSource}>
+                    Browse
+                  </Button>
                 </div>
-                <span className="text-xs font-medium text-emerald-700">
-                  Connected: <span className="text-neutral-900 ml-0.5">{currentUser}</span>
-                </span>
+                <p className="text-sm text-neutral-500">
+                  All .docx files in this folder will be added to the processing queue.
+                </p>
               </div>
+<<<<<<< HEAD
             </div>
             <CardDescription>Select which Outlook folder to scan</CardDescription>
           </CardHeader>
@@ -156,6 +294,11 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
             </div>
           </CardContent>
         </Card>
+=======
+            </CardContent>
+          </Card>
+        )}
+>>>>>>> c9189064bb79c234ec1e67abc876380ea857268d
 
         {/* Output */}
         <Card className="border-neutral-200 shadow-sm">
@@ -176,7 +319,7 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
                   onChange={(e) => setOutputPath(e.target.value)}
                   className="bg-white flex-1"
                 />
-                <Button variant="outline" className="px-4" onClick={handleBrowse}>
+                <Button variant="outline" className="px-4" onClick={handleBrowseOutput}>
                   Browse
                 </Button>
               </div>
@@ -190,7 +333,7 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
         {/* Actions */}
         <div className="flex justify-between items-center pt-4">
           <div className="flex gap-4">
-            <button 
+            <button
               onClick={() => onNavigate('settings')}
               className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center gap-1 transition-colors"
             >
@@ -209,10 +352,9 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
             onClick={handleScan}
             size="lg"
             className="px-8 bg-neutral-900 hover:bg-neutral-800"
-            disabled={!outputPath}
-            title={!outputPath ? "Please select an export folder first" : ""}
+            disabled={!outputPath || (sourceMode === 'local' && !localPath) || isScanning}
           >
-            Scan Inbox
+            {isScanning ? "Scanning..." : sourceMode === 'outlook' ? "Scan Inbox" : "Scan Folder"}
           </Button>
         </div>
       </div>

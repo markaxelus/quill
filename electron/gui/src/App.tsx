@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from './api';
 import './global.css';
 
-import Setup, {type ScanConfig} from './components/setup';
+import Setup, { type ScanConfig } from './components/setup';
 import Results, { type EmailResult } from './components/result';
 import { Processing, type ProcessingSummary } from './components/processing';
 import { Completion } from './components/completion';
@@ -19,7 +19,7 @@ function App() {
   const [scanResults, setScanResults] = useState<EmailResult[]>([])
   const [itemsToProcess, setItemsToProcess] = useState<EmailResult[]>([])
   const [processingSummary, setProcessingSummary] = useState<ProcessingSummary | null>(null)
-  
+
   // App Settings
   const [settings, setSettings] = useState({
     defaultFolder: 'Inbox',
@@ -36,6 +36,7 @@ function App() {
   const handleScan = async (config: ScanConfig) => {
     console.log('Scanning with config:', config);
     setScanConfig(config);
+<<<<<<< HEAD
     setSettings(prev => ({ 
       ...prev, 
       outputPath: config.outputPath,
@@ -43,8 +44,15 @@ function App() {
       defaultSubject: config.subjectFilter
     }));
     
+=======
+    setSettings(prev => ({ ...prev, outputPath: config.outputPath }));
+
+>>>>>>> c9189064bb79c234ec1e67abc876380ea857268d
     try {
-      const results = await api.scanInbox(config);
+      const results = config.isLocal && config.localPath
+        ? await api.scanLocal({ localPath: config.localPath })
+        : await api.scanInbox(config);
+
       setScanResults(results);
       setCurrentScreen('results')
     } catch (e) {
@@ -56,8 +64,8 @@ function App() {
   return (
     <div className="size-full">
       {currentScreen === 'setup' && (
-        <Setup 
-          onNavigate={handleNavigation} 
+        <Setup
+          onNavigate={handleNavigation}
           onScan={handleScan}
           defaults={{
             folder: settings.defaultFolder,
@@ -68,14 +76,14 @@ function App() {
       )}
 
       {currentScreen === 'settings' && (
-        <Settings 
+        <Settings
           initialSettings={settings}
           onSave={(newSettings) => {
             setSettings(newSettings);
             alert('Settings saved!');
             setCurrentScreen('setup');
           }}
-          onBack={() => setCurrentScreen('setup')} 
+          onBack={() => setCurrentScreen('setup')}
         />
       )}
 
@@ -84,7 +92,7 @@ function App() {
       )}
 
       {currentScreen === 'results' &&
-        <Results 
+        <Results
           results={scanResults}
           onBack={() => setCurrentScreen('setup')}
           onRescan={() => {
@@ -109,18 +117,18 @@ function App() {
             setCurrentScreen('completion')
           }}
           startProcessing={async (onProgress) => {
-             return api.processApplications(itemsToProcess, {
-               skipIncomplete: settings.skipIncomplete,
-               exportBehavior: settings.exportBehavior,
-               outputPath: scanConfig?.outputPath
-             }, onProgress);
+            return api.processApplications(itemsToProcess, {
+              skipIncomplete: settings.skipIncomplete,
+              exportBehavior: settings.exportBehavior,
+              outputPath: scanConfig?.outputPath
+            }, onProgress);
           }}
           onCancel={() => setCurrentScreen('results')}
         />
       )}
 
       {currentScreen === 'completion' && processingSummary && (
-        <Completion 
+        <Completion
           summary={processingSummary}
           onRunAgain={() => setCurrentScreen('setup')}
         />

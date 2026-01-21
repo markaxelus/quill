@@ -48,6 +48,31 @@ def handle_scan(payload: Dict[str, Any]):
   except Exception as e:
     send_response({"status": "error", "message": str(e), "trace": traceback.format_exc()})
 
+def handle_scan_local(payload: Dict[str, Any]):
+  local_path = payload.get("localPath")
+  if not local_path or not os.path.exists(local_path):
+    send_response({"status": "error", "message": f"Local path not found: {local_path}"})
+    return
+
+  client = OutlookClient()
+  results = []
+  
+  try:
+    attachments = client.scan_local_folder(local_path)
+    for att in attachments:
+      results.append({
+        "id": att.entry_id, 
+        "date": att.received.isoformat(),
+        "sender": att.sender_email,
+        "subject": att.subject,
+        "attachment": att.attachment_filename,
+        "path": att.attachment_path,
+        "status": "ready"
+      })
+    send_response({"status": "success", "data": results})
+  except Exception as e:
+    send_response({"status": "error", "message": str(e), "trace": traceback.format_exc()})
+
 def handle_process(payload: Dict[str, Any]):
   items = payload.get("items", [])
   # Check for outputPath at top level or inside options
@@ -175,6 +200,8 @@ def main():
           
       if command == "scan":
         handle_scan(payload)
+      elif command == "scan-local":
+        handle_scan_local(payload)
       elif command == "process":
         handle_process(payload)
       elif command == "get-user":

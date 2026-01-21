@@ -5,6 +5,7 @@ import type { ScanConfig } from "./components/setup";
 // Define the interface for the exposed electron API
 interface ElectronAPI {
   scanInbox: (config: ScanConfig) => Promise<any[]>;
+  scanLocal: (config: { localPath: string }) => Promise<any[]>;
   processJobs: (items: any[], options: any) => Promise<{ type: string; summary: ProcessingSummary }>;
   onProcessingUpdate: (callback: (progress: any) => void) => () => void;
   openFile: (path: string) => Promise<void>;
@@ -26,20 +27,27 @@ export const api = {
     }
     return window.electron.scanInbox(config);
   },
-  
+
+  scanLocal: async (config: { localPath: string }): Promise<EmailResult[]> => {
+    if (!window.electron) {
+      throw new Error("Electron API not found.");
+    }
+    return window.electron.scanLocal(config);
+  },
+
   processApplications: async (
-    items: EmailResult[], 
+    items: EmailResult[],
     parsingOptions: { skipIncomplete: boolean; exportBehavior: string; outputPath?: string },
     onProgress: (progress: any) => void
   ): Promise<ProcessingSummary> => {
-    
+
     // Set up listener
     const unsubscribe = window.electron.onProcessingUpdate(onProgress);
-    
+
     try {
       const result = await window.electron.processJobs(items, parsingOptions);
       // Result is the 'complete' message payload which contains the summary
-      return result.summary; 
+      return result.summary;
     } finally {
       unsubscribe();
     }
@@ -52,7 +60,7 @@ export const api = {
     return window.electron.getUser();
   },
   selectDirectory: async (): Promise<string | null> => {
-     if (!window.electron) return null;
-     return window.electron.selectDirectory();
+    if (!window.electron) return null;
+    return window.electron.selectDirectory();
   }
 };
