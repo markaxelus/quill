@@ -27,7 +27,7 @@ def _build_dummy_rows() -> List[ApplicationRow]:
         ApplicationRow(
             student_name="Devin Patel",
             pronouns="he/him",
-            student_email="devin.patel@example.edu",
+            student_email="devin.patel@example",
             faculty="Faculty of Social Sciences",
             major_area="Political Science",
             year_of_study="2",

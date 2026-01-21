@@ -140,7 +140,7 @@ const Setup = ({ onNavigate, onScan, defaults }: SetupProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subject">From Date</Label>
+              <Label htmlFor="date">From Date</Label>
               <Input 
                 id="date"
                 type="date"

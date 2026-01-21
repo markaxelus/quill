@@ -36,7 +36,12 @@ function App() {
   const handleScan = async (config: ScanConfig) => {
     console.log('Scanning with config:', config);
     setScanConfig(config);
-    setSettings(prev => ({ ...prev, outputPath: config.outputPath }));
+    setSettings(prev => ({ 
+      ...prev, 
+      outputPath: config.outputPath,
+      defaultFolder: config.folder,
+      defaultSubject: config.subjectFilter
+    }));
     
     try {
       const results = await api.scanInbox(config);
